@@ -1,11 +1,9 @@
-use itertools::{Itertools, TupleWindows};
 use std::{
     fs,
     io::{BufRead, BufReader},
-    slice::Iter,
 };
 
-const FILENAME: &str = "./inputs/day2/part_1.txt";
+const FILENAME: &str = "./inputs/day2/part_2.txt";
 
 fn parse_line(line: String) -> (String, i32) {
     let mut split = line.split(' ');
@@ -17,20 +15,23 @@ fn parse_line(line: String) -> (String, i32) {
 fn main() {
     let file = fs::File::open(FILENAME).expect("Could not read file");
     let reader = BufReader::new(file);
+    let mut aim = 0;
     let mut x = 0;
     let mut y = 0;
 
     reader
         .lines()
         .filter_map(|f| match f {
-            Ok(v) => Some(v),
+            Ok(v) => Some(parse_line(v)),
             Err(_) => None,
         })
-        .map(parse_line)
-        .for_each(|(a, b)| match a.as_str() {
-            "forward" => x += b,
-            "down" => y += b,
-            "up" => y -= b,
+        .for_each(|(direction, amount)| match direction.as_str() {
+            "forward" => {
+                x += amount;
+                y += aim * amount
+            }
+            "down" => aim += amount,
+            "up" => aim -= amount,
             _ => panic!("unknow move"),
         });
 
