@@ -1,14 +1,26 @@
+use itertools::Itertools;
+use std::ops::BitXor;
 use std::{
     fs,
     io::{BufRead, BufReader},
 };
 
-use itertools::Itertools;
-
 const FILENAME: &str = "./inputs/day3/input.txt";
 
-fn sum_arrays(a: Vec<u32>, b: Vec<u32>) -> Vec<u32> {
-    a.iter().zip(b).map(|(a, b)| a + b).collect()
+fn find_common_at_position(data: &Vec<Vec<u32>>, position: usize, search_type: bool) -> u32 {
+    let digit_sum: u32 = data.iter().map(|data| data[position]).sum();
+    let one_common = digit_sum / (data.len() as u32 - digit_sum) > 0;
+    !BitXor::bitxor(one_common, search_type) as u32
+}
+
+fn solve(data: &mut Vec<Vec<u32>>, search_type: bool) -> String {
+    let mut position: usize = 0;
+    while data.len() > 1 {
+        let common = find_common_at_position(&data, position, search_type);
+        data.retain(|bits| bits[position] == common);
+        position += 1;
+    }
+    data.pop().unwrap().iter().join("")
 }
 
 // There is surely a better way to do this
@@ -17,7 +29,7 @@ fn main() {
     let reader = BufReader::new(file);
     let mut total = 0;
 
-    let result = reader
+    let data: Vec<Vec<u32>> = reader
         .lines()
         .filter_map(|f| match f {
             Ok(v) => {
@@ -27,21 +39,9 @@ fn main() {
             }
             Err(_) => None,
         })
-        .reduce(sum_arrays)
-        .unwrap();
+        .collect();
 
-    let common: String = result
-        .clone()
-        .iter_mut()
-        .map(|digit| if *digit / (total - *digit) > 0 { 1 } else { 0 })
-        .join("");
-
-    let uncommon: String = result
-        .clone()
-        .iter_mut()
-        .map(|digit| if *digit / (total - *digit) > 0 { 0 } else { 1 })
-        .join("");
-
-    println!("{}", common);
-    println!("{}", uncommon);
+    let oxygen = solve(&mut data.clone(), true);
+    let scrubber = solve(&mut data.clone(), false);
+    println!("Oxygen : {} CO2, Scrubber: {}", oxygen, scrubber);
 }
