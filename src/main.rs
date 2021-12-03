@@ -3,37 +3,45 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-const FILENAME: &str = "./inputs/day2/part_2.txt";
+use itertools::Itertools;
 
-fn parse_line(line: String) -> (String, i32) {
-    let mut split = line.split(' ');
-    let command = split.next().unwrap();
-    let amount = split.next().unwrap().parse::<i32>().unwrap();
-    (command.to_string(), amount)
+const FILENAME: &str = "./inputs/day3/input.txt";
+
+fn sum_arrays(a: Vec<u32>, b: Vec<u32>) -> Vec<u32> {
+    a.iter().zip(b).map(|(a, b)| a + b).collect()
 }
 
+// There is surely a better way to do this
 fn main() {
     let file = fs::File::open(FILENAME).expect("Could not read file");
     let reader = BufReader::new(file);
-    let mut aim = 0;
-    let mut x = 0;
-    let mut y = 0;
+    let mut total = 0;
 
-    reader
+    let result = reader
         .lines()
         .filter_map(|f| match f {
-            Ok(v) => Some(parse_line(v)),
+            Ok(v) => {
+                total += 1;
+                let chars: Vec<u32> = v.chars().filter_map(|c| c.to_digit(10)).collect();
+                Some(chars)
+            }
             Err(_) => None,
         })
-        .for_each(|(direction, amount)| match direction.as_str() {
-            "forward" => {
-                x += amount;
-                y += aim * amount
-            }
-            "down" => aim += amount,
-            "up" => aim -= amount,
-            _ => panic!("unknow move"),
-        });
+        .reduce(sum_arrays)
+        .unwrap();
 
-    println!("{}", x * y);
+    let common: String = result
+        .clone()
+        .iter_mut()
+        .map(|digit| if *digit / (total - *digit) > 0 { 1 } else { 0 })
+        .join("");
+
+    let uncommon: String = result
+        .clone()
+        .iter_mut()
+        .map(|digit| if *digit / (total - *digit) > 0 { 0 } else { 1 })
+        .join("");
+
+    println!("{}", common);
+    println!("{}", uncommon);
 }
