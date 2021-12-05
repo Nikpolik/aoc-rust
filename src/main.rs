@@ -1,47 +1,55 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 use itertools::Itertools;
-use std::ops::BitXor;
+
+mod bingo;
+mod helpers;
+use crate::bingo::BingoGame;
+use crate::helpers::StringUtils;
+
 use std::{
-    fs,
+    fs::{self, File},
     io::{BufRead, BufReader},
+    process::exit,
 };
 
-const FILENAME: &str = "./inputs/day3/input.txt";
-
-fn find_common_at_position(data: &Vec<Vec<u32>>, position: usize, search_type: bool) -> u32 {
-    let digit_sum: u32 = data.iter().map(|data| data[position]).sum();
-    let one_common = digit_sum / (data.len() as u32 - digit_sum) > 0;
-    !BitXor::bitxor(one_common, search_type) as u32
-}
-
-fn solve(data: &mut Vec<Vec<u32>>, search_type: bool) -> String {
-    let mut position: usize = 0;
-    while data.len() > 1 {
-        let common = find_common_at_position(&data, position, search_type);
-        data.retain(|bits| bits[position] == common);
-        position += 1;
-    }
-    data.pop().unwrap().iter().join("")
-}
-
+const FILENAME: &str = "./inputs/day4/input.txt";
 // There is surely a better way to do this
 fn main() {
     let file = fs::File::open(FILENAME).expect("Could not read file");
-    let reader = BufReader::new(file);
-    let mut total = 0;
+    let mut reader = BufReader::new(file);
+    let mut first_line = String::new();
+    reader
+        .read_line(&mut first_line)
+        .expect("Could not read first line from input");
 
-    let data: Vec<Vec<u32>> = reader
-        .lines()
-        .filter_map(|f| match f {
-            Ok(v) => {
-                total += 1;
-                let chars: Vec<u32> = v.chars().filter_map(|c| c.to_digit(10)).collect();
-                Some(chars)
-            }
-            Err(_) => None,
-        })
+    let rng: Vec<u32> = first_line
+        .split(",")
+        .filter_map(|digit| digit.safe_parse::<u32>())
         .collect();
 
-    let oxygen = solve(&mut data.clone(), true);
-    let scrubber = solve(&mut data.clone(), false);
-    println!("Oxygen : {} CO2, Scrubber: {}", oxygen, scrubber);
+    // skip empty line
+    reader.read_line(&mut first_line).unwrap();
+
+    let mut games: Vec<BingoGame> = Vec::new();
+    while let Some(game) = BingoGame::from_reader(&mut reader) {
+        games.push(game);
+    }
+    rng.iter().for_each(|number| {
+        games.iter_mut().for_each(|game| {
+            let changed = game.mark(*number);
+            if changed {
+                if game.won() {
+                    let score = game.calculate_total() * number;
+                    if score > 0 {
+                        println!("score: {}, won", score);
+                        game.print_board();
+                        exit(0);
+                    }
+                }
+            }
+        });
+    });
+    exit(-1);
 }
