@@ -16,48 +16,70 @@ use std::{
     process::exit,
 };
 
-fn sort(mut numbers: [usize; 2]) -> [usize; 2] {
+fn sort(mut numbers: [u32; 2]) -> [u32; 2] {
     numbers.sort();
     numbers
 }
 
-fn parse_line(line: &String) -> Option<Vec<(usize, usize)>> {
+fn parse_line(line: &String) -> Vec<(u32, u32)> {
     let mut split = line.split(" -> ");
-    let (start_x, start_y) = parse_tuple(split.next().unwrap());
+    let (mut start_x, mut start_y) = parse_tuple(split.next().unwrap());
     let (end_x, end_y) = parse_tuple(split.next().unwrap());
-
-    // non horizontal or vertical line return
-    if start_x != end_x && start_y != end_y {
-        return None;
-    }
 
     if start_x == end_x {
         let [start_y, end_y] = sort([start_y, end_y]);
-        return Some((start_y..(end_y + 1)).map(|y| (start_x, y)).collect());
+        return (start_y..(end_y + 1)).map(|y| (start_x, y)).collect();
     }
 
-    let [start_x, end_x] = sort([start_x, end_x]);
-    Some((start_x..(end_x + 1)).map(|x| (x, start_y)).collect())
+    if start_y == end_y {
+        let [start_x, end_x] = sort([start_x, end_x]);
+        return (start_x..(end_x + 1)).map(|x| (x, start_y)).collect();
+    }
+
+    let mut slots = Vec::new();
+    slots.push((start_x.clone(), start_y));
+    loop {
+        start_x = get_next(start_x, end_x);
+        start_y = get_next(start_y, end_y);
+        slots.push((start_x.clone(), start_y));
+        if start_x == end_x || start_y == end_y {
+            break;
+        }
+    }
+    slots
 }
 
-fn parse_tuple(tuple_string: &str) -> (usize, usize) {
-    let coordinates: Vec<usize> = tuple_string
+fn get_next(start: u32, end: u32) -> u32 {
+    if start > end {
+        start - 1
+    } else {
+        start + 1
+    }
+}
+
+fn parse_tuple(tuple_string: &str) -> (u32, u32) {
+    let coordinates: Vec<u32> = tuple_string
         .split(",")
-        .filter_map(|digit| digit.safe_parse::<usize>())
+        .filter_map(|digit| digit.safe_parse::<u32>())
         .collect();
     (coordinates[0], coordinates[1])
 }
 
-const FILENAME: &str = "./inputs/day5/input.txt";
+const FILENAME: &str = "./inputs/day5/input";
 // There is surely a better way to do this
 fn main() {
     let file = fs::File::open(FILENAME).expect("Could not read file");
     let reader = BufReader::new(file);
-    let mut scores: HashMap<(usize, usize), u32> = HashMap::new();
+    let mut scores: HashMap<(u32, u32), u32> = HashMap::new();
     reader
         .lines()
         .filter_map(|res| match res {
-            Ok(v) => parse_line(&v),
+            Ok(v) => {
+                let result = parse_line(&v);
+                println!("{}", v);
+                println!("{:?}", result);
+                Some(result)
+            }
             Err(e) => panic!("{}", e),
         })
         .flatten()
