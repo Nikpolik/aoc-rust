@@ -38,18 +38,18 @@ fn main() {
     }
     rng.iter().for_each(|number| {
         games.iter_mut().for_each(|game| {
-            let changed = game.mark(*number);
-            if changed {
-                if game.won() {
-                    let score = game.calculate_total() * number;
-                    if score > 0 {
-                        println!("score: {}, won", score);
-                        game.print_board();
-                        exit(0);
-                    }
-                }
-            }
+            game.mark(*number);
         });
+        if games.len() == 1 {
+            let last_game = games.first().unwrap();
+            if last_game.won() {
+                println!(
+                    "{}, score: {}",
+                    number,
+                    last_game.calculate_total() * number
+                );
+            }
+        }
+        games.retain(|game| !game.won());
     });
-    exit(-1);
 }
