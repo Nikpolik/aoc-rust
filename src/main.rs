@@ -1,37 +1,51 @@
 #![allow(dead_code)]
 
+mod helpers;
+
+use crate::helpers::{PartialSum, StringUtils};
+
 use std::{
     fs::File,
     io::{BufRead, BufReader},
 };
 
-const FILENAME: &str = "./inputs/day6/input.txt";
+const FILENAME: &str = "./inputs/day7/input.txt";
+
 // There is surely a better way to do this
 fn main() {
     let file = File::open(FILENAME).expect("Could not read file");
-    let reader = BufReader::new(file);
+    let mut reader = BufReader::new(file);
 
-    // hold num of fishes in each state of their life
-    let mut fishes: [u64; 9] = [0; 9];
+    let mut line = String::new();
+    reader.read_line(&mut line).unwrap();
 
-    reader.lines().for_each(|result| {
-        if let Ok(line) = result {
-            line.split(",")
-                .into_iter()
-                .map(|digit| digit.parse::<usize>().unwrap())
-                .for_each(|digit| fishes[digit] += 1)
+    let squid_positions: Vec<u32> = line
+        .split(",")
+        .filter_map(|digit| digit.trim().safe_parse::<u32>())
+        .collect();
+
+    let min: u32 = *squid_positions.iter().min().unwrap();
+    let max: u32 = *squid_positions.iter().max().unwrap() + 1;
+
+    // memoize sums
+    let mut sums = PartialSum::new();
+
+    // track min total distance
+    let mut min_distance = u32::MAX;
+
+    for base_position in min..max {
+        let mut current_distance: u32 = 0;
+        for j in 0..squid_positions.len() {
+            let distance: u32 = (base_position as i32 - squid_positions[j] as i32)
+                .abs()
+                .try_into()
+                .unwrap();
+
+            current_distance += sums.get(distance);
         }
-    });
-
-    for _ in 0..256 {
-        let total_done = fishes[0];
-
-        for digit in 1..9 {
-            fishes[digit - 1] = fishes[digit];
+        if current_distance < min_distance {
+            min_distance = current_distance;
         }
-
-        fishes[6] += total_done;
-        fishes[8] = total_done;
     }
-    print!("{}", fishes.iter().sum::<u64>());
+    println!("min distance -> {}", min_distance);
 }
