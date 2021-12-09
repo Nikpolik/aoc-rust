@@ -2,50 +2,48 @@
 
 mod helpers;
 
-use crate::helpers::{PartialSum, StringUtils};
-
 use std::{
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Error},
 };
 
-const FILENAME: &str = "./inputs/day7/input.txt";
+const FILENAME: &str = "./inputs/day8/input.txt";
 
-// There is surely a better way to do this
+fn parse_line(line: Result<String, Error>) -> String {
+    let normal_string = line.unwrap();
+    let output = normal_string.split(" | ").skip(1).next().unwrap();
+    // Alocate string to return
+    String::from(output)
+}
+
+// a  b  c    d    e    f    g
+//[a, b, nil, nil, nil, nil, nil]
+//['f', 'd', 'g', 'a', 'c', 'b', 'e'] => true,
+//['a', 'b', 'c', 'd', 'e', 'f', 'g']
+// gcbe
+
+fn solve(output: &String) -> u32 {
+    let total = output
+        .split(" ")
+        .map(|digit| digit.len())
+        .filter(|count| match count {
+            7 => true,
+            4 => true,
+            3 => true,
+            2 => true,
+            _ => false,
+        })
+        .count();
+    total as u32
+}
+
 fn main() {
     let file = File::open(FILENAME).expect("Could not read file");
-    let mut reader = BufReader::new(file);
+    let reader = BufReader::new(file);
 
-    let mut line = String::new();
-    reader.read_line(&mut line).unwrap();
+    let outputs: Vec<String> = reader.lines().map(parse_line).collect();
+    let total: u32 = outputs.iter().map(solve).sum();
 
-    let squid_positions: Vec<u32> = line
-        .split(",")
-        .filter_map(|digit| digit.trim().safe_parse::<u32>())
-        .collect();
-
-    let min: u32 = *squid_positions.iter().min().unwrap();
-    let max: u32 = *squid_positions.iter().max().unwrap() + 1;
-
-    // memoize sums
-    let mut sums = PartialSum::new();
-
-    // track min total distance
-    let mut min_distance = u32::MAX;
-
-    for base_position in min..max {
-        let mut current_distance: u32 = 0;
-        for j in 0..squid_positions.len() {
-            let distance: u32 = (base_position as i32 - squid_positions[j] as i32)
-                .abs()
-                .try_into()
-                .unwrap();
-
-            current_distance += sums.get(distance);
-        }
-        if current_distance < min_distance {
-            min_distance = current_distance;
-        }
-    }
-    println!("min distance -> {}", min_distance);
+    println!("-------");
+    println!("{}", total);
 }
