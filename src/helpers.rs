@@ -2,6 +2,49 @@
 
 use std::{collections::HashMap, str::FromStr};
 
+pub type Point = (usize, usize);
+
+pub fn get_adjacent(point: Point, length_x: usize, length_y: usize) -> Vec<Point> {
+    let (x, y) = point;
+
+    let mut adjacent: Vec<Point> = Vec::new();
+
+    if x > 0 {
+        adjacent.push((x - 1, y));
+    }
+
+    if y > 0 {
+        adjacent.push((x, y - 1));
+    }
+
+    if x < length_x - 1 {
+        adjacent.push((x + 1, y));
+    }
+
+    if y < length_y - 1 {
+        adjacent.push((x, y + 1));
+    }
+
+    adjacent
+}
+
+pub fn print_2d<T: std::fmt::Display>(items: &Vec<Vec<T>>) {
+    for _ in items[0].iter() {
+        print!("---------");
+    }
+    println!("");
+    for row in items.iter() {
+        for col in row.iter() {
+            print!(" {} |", col);
+        }
+        println!("");
+        for _ in row.iter() {
+            print!("---------");
+        }
+        println!("");
+    }
+}
+
 // memoize
 pub struct PartialSum {
     partial_sums: HashMap<u32, u32>,
