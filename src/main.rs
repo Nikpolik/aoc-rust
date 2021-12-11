@@ -14,33 +14,56 @@ const FILENAME: &str = "./inputs/day_10/input.txt";
 fn main() {
     let file = File::open(FILENAME).expect("Could not read file");
     let reader = BufReader::new(file);
-    let mut rules: HashMap<char, (char, u32)> = HashMap::new();
+
+    let mut rules: HashMap<char, (char, u128)> = HashMap::new();
+
     rules.insert('>', ('<', 25137));
     rules.insert(')', ('(', 3));
     rules.insert(']', ('[', 57));
     rules.insert('}', ('{', 1197));
 
-    let mut score = 0;
+    rules.insert('(', (')', 1));
+    rules.insert('[', (']', 2));
+    rules.insert('{', ('}', 3));
+    rules.insert('<', ('>', 4));
+
+    let mut scores: Vec<u128> = Vec::new();
+
     for line in reader.lines() {
         let mut stack: Vec<char> = Vec::new();
+        let mut corrupted = false;
 
         for character in line.unwrap().chars() {
             match character {
                 '<' | '(' | '{' | '[' => stack.push(character),
                 '>' | ')' | '}' | ']' => {
                     let previous = stack.pop();
-                    let (matching, points) = rules.get(&character).unwrap();
+                    let (matching, _) = rules.get(&character).unwrap();
                     if previous != Some(*matching) {
-                        score += *points;
+                        corrupted = true;
                         break;
                     }
                 }
-                _ => {
-                    println!("{}", character);
-                    panic!("unknown character found");
-                }
+                _ => panic!("unknown character found"),
             }
         }
+
+        if corrupted {
+            continue;
+        }
+
+        let mut score: u128 = 0;
+        for character in stack.iter().rev() {
+            let (_, points) = rules.get(&character).unwrap();
+
+            score = score * 5;
+            score += *points;
+        }
+        scores.push(score);
     }
-    println!("{}", score);
+
+    scores.sort();
+
+    let winning_index = scores.len() / 2;
+    println!("{:?}", scores[winning_index]);
 }
