@@ -30,7 +30,7 @@ pub fn get_adjacent(point: Point, length_x: usize, length_y: usize) -> Vec<Point
 
 pub fn print_2d<T: std::fmt::Display>(items: &Vec<Vec<T>>) {
     for _ in items[0].iter() {
-        print!("---------");
+        print!("----");
     }
     println!("");
     for row in items.iter() {
@@ -39,7 +39,7 @@ pub fn print_2d<T: std::fmt::Display>(items: &Vec<Vec<T>>) {
         }
         println!("");
         for _ in row.iter() {
-            print!("---------");
+            print!("----");
         }
         println!("");
     }
