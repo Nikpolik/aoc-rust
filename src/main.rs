@@ -4,7 +4,7 @@
 mod helpers;
 
 use std::cmp::Ordering::{self, Less};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::slice::SliceIndex;
 use std::{fmt, fmt::Debug, fs::File, io::BufRead, io::BufReader};
 
@@ -13,74 +13,44 @@ use itertools::Itertools;
 use crate::helpers::print_2d;
 use crate::helpers::StringUtils;
 
-const FILENAME: &str = "./inputs/2022/day_2/input.txt";
+const FILENAME: &str = "./inputs/2022/day3/test.txt";
 
-// ROCK A
-// PAPER B
-// SCIZORS C
-// X LOSE
-// Y DRAW
-// Z WIN
+fn get_letter_priorit(letter: char) -> usize {
+    let a_capital = 65;
+    let a = 97;
+    let letter_code = letter as usize;
 
-fn get_move_score(current_move: &str) -> u64 {
-    match current_move {
-        "A" => 1,
-        "B" => 2,
-        "C" => 3,
-        _ => {
-            panic!("Move was not one of A, B, C")
-        }
-    }
-}
-
-fn get_move<'a>(opponent_move: &'a str, outcome: &'a str) -> &'a str {
-    match (opponent_move, outcome) {
-        ("B", "X") => "A",
-        ("C", "Z") => "A",
-        ("A", "Z") => "B",
-        ("C", "X") => "B",
-        ("A", "X") => "C",
-        ("B", "Z") => "C",
-        (any, "Y") => any,
-        _ => panic!("Move not valid"),
-    }
-}
-
-fn get_game_score(outcome: &str) -> u64 {
-    match outcome {
-        "Y" => 3,
-        "Z" => 6,
-        _ => 0,
+    if letter_code >= a {
+        return 1 + letter_code - a;
+    } else {
+        return 27 + letter_code - a_capital;
     }
 }
 
 fn main() {
     let file = File::open(FILENAME).expect("Could not read file");
     let reader = BufReader::new(file);
-    let mut score: u64 = 0;
-    reader.lines().for_each(|line| {
-        let moves: Vec<String> = line
-            .unwrap()
-            .split(" ")
-            .take(2)
-            .map(|letter| letter.to_string())
-            .collect();
+    let mut total_priority: u64 = 0;
+    for group in reader.lines().chunks(3).into_iter() {
+        let mut all_letters: [u8; 53] = [0; 53];
+        for line in group {
+            let mut current_letters: [bool; 53] = [false; 53];
+            line.unwrap().chars().for_each(|letter| {
+                let priority = get_letter_priorit(letter);
+                current_letters[priority] = true;
+            });
+            for i in 0..current_letters.len() {
+                if current_letters[i] {
+                    all_letters[i] += 1;
+                }
+            }
+        }
 
-        let first = moves.get(0).unwrap();
-        let second = moves.get(1).unwrap();
-        let my_move = get_move(first, second);
-        let game_score = get_game_score(second);
-        let move_score = get_move_score(my_move);
-
-        println!(
-            "{} {} | Score move : {} game: {} total: {}",
-            first,
-            second,
-            move_score,
-            game_score,
-            game_score + move_score
-        );
-        score += game_score + move_score;
-    });
-    println!("{}", score);
+        for i in 0..all_letters.len() {
+            if all_letters[i] == 3 {
+                total_priority += i as u64;
+            }
+        }
+    }
+    println!("{}", total_priority);
 }
