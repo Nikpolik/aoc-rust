@@ -1,124 +1,183 @@
 mod helpers;
+use crate::helpers::StringUtils;
+use std::collections::HashSet;
+use std::num::ParseIntError;
+use std::str::FromStr;
 
-type InputType = Vec<Vec<i32>>;
-type SolutionType = Vec<Vec<bool>>;
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+struct Point {
+    x: i32,
+    y: i32,
+}
 
-fn parse_input(input_str: &str) -> InputType {
-    input_str
-        .lines()
-        .map(|line| {
-            line.chars()
-                .filter_map(|c| c.to_digit(10))
-                .map(|d| d as i32)
-                .collect()
-        })
-        .collect()
+impl Point {
+    pub fn new(x: i32, y: i32) -> Self {
+        Self { x, y }
+    }
+}
+
+impl std::fmt::Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "({},{})", self.x, self.y)
+    }
+}
+
+struct Input {
+    action: Move,
+    times: i32,
 }
 
 #[derive(Debug)]
-enum Side {
-    LeftRight,
-    TopBottom,
-    RightLeft,
-    BottomTop,
+enum Move {
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
-fn get_range(side: &Side, start: usize, end: usize) -> Box<dyn Iterator<Item = usize>> {
-    match side {
-        Side::LeftRight | Side::TopBottom => Box::new(start..end),
-        Side::RightLeft | Side::BottomTop => Box::new((start..end).rev()),
-    }
-}
+impl FromStr for Move {
+    type Err = ();
 
-fn find_clearings(i: usize, j: usize, input: &InputType) -> i32 {
-    let mut total = 1;
-    let mut side_score = 0;
-    // left
-    for k in get_range(&Side::RightLeft, 0, j) {
-        side_score += 1;
-        if input[i][k] >= input[i][j] {
-            break;
-        }
-    }
-    total = total * side_score;
-
-    // right
-    side_score = 0;
-    for k in get_range(&Side::LeftRight, j + 1, input.len()) {
-        side_score += 1;
-        if input[i][k] >= input[i][j] {
-            break;
-        }
-    }
-    total = total * side_score;
-
-    // top
-    side_score = 0;
-    for k in get_range(&Side::BottomTop, 0, i) {
-        side_score += 1;
-        if input[k][j] >= input[i][j] {
-            break;
-        }
-    }
-    total = total * side_score;
-
-    // bottom
-    side_score = 0;
-    for k in get_range(&Side::TopBottom, i + 1, input.len()) {
-        side_score += 1;
-        if input[k][j] >= input[i][j] {
-            break;
-        }
-    }
-    total = total * side_score;
-    total
-}
-
-fn check_side(side: Side, input: &InputType, visibility_status: &mut SolutionType) {
-    let range = get_range(&side, 0, input.len());
-
-    for i in range {
-        let mut largest_height = -1;
-        let inner = get_range(&side, 0, input.len());
-
-        for j in inner {
-            let (first, second) = match side {
-                Side::LeftRight | Side::RightLeft => (i, j),
-                Side::TopBottom | Side::BottomTop => (j, i),
-            };
-            let current_row_height = input[first][second];
-            if current_row_height > largest_height {
-                visibility_status[first][second] = true;
-                largest_height = current_row_height;
-            }
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "U" => Ok(Self::Up),
+            "D" => Ok(Self::Down),
+            "L" => Ok(Self::Left),
+            "R" => Ok(Self::Right),
+            _ => unreachable!(),
         }
     }
 }
 
-fn main() {
-    let input_str = include_str!("../inputs/2022/day8/input.txt");
-    let input = parse_input(input_str);
-    let mut visibility_status: SolutionType = input
-        .iter()
-        .map(|row| row.iter().map(|_| false).collect())
-        .collect();
-    // first lets do one side, left to right
-    // scan items row by row and left to right
-    check_side(Side::TopBottom, &input, &mut visibility_status);
-    check_side(Side::BottomTop, &input, &mut visibility_status);
-    check_side(Side::RightLeft, &input, &mut visibility_status);
-    check_side(Side::LeftRight, &input, &mut visibility_status);
+impl FromStr for Input {
+    type Err = ParseIntError;
 
-    let mut max = 0;
-    for i in 0..visibility_status.len() {
-        for j in 0..visibility_status.len() {
-            if visibility_status[i][j] {
-                let score = find_clearings(i, j, &input);
-                if score > max {
-                    max = score;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(" ");
+        let direction = parts.next().unwrap().parse::<Move>().unwrap();
+        let amount = parts.next().unwrap().parse::<i32>()?;
+
+        Ok(Self {
+            action: direction,
+            times: amount,
+        })
+    }
+}
+
+struct Rope {
+    head: Point,
+    pub tails: [Point; 9],
+    pub solution: SolutionType,
+}
+
+impl Rope {
+    pub fn new() -> Self {
+        Self {
+            head: Point::new(0, 0),
+            tails: [Point::new(0, 0); 9],
+            solution: HashSet::new(),
+        }
+    }
+
+    pub fn print_solution(&self) {
+        let max_x = self.solution.iter().map(|i| i.x).max().unwrap();
+        let min_x = self.solution.iter().map(|i| i.x).min().unwrap();
+        let max_y = self.solution.iter().map(|i| i.y).max().unwrap();
+        let min_y = self.solution.iter().map(|i| i.y).min().unwrap();
+
+        for x in min_x..=max_x {
+            for y in min_y..=max_y {
+                if self.solution.contains(&Point::new(x, y)) {
+                    print!(" * ");
+                } else {
+                    print!(" . ");
                 }
             }
+            println!("");
         }
     }
-    println!("{}", max);
+
+    pub fn process_input(&mut self, rope_move: Input) {
+        for _ in 0..rope_move.times {
+            self.move_head(&rope_move.action);
+        }
+    }
+
+    pub fn move_head(&mut self, rope_move: &Move) {
+        match rope_move {
+            Move::Up => self.head.y += 1,
+            Move::Down => self.head.y -= 1,
+            Move::Right => self.head.x += 1,
+            Move::Left => self.head.x -= 1,
+        }
+
+        for i in 0..9 {
+            self.move_tail(i);
+        }
+        println!("{}", self);
+    }
+
+    fn move_tail(&mut self, index: usize) {
+        let prev = match index {
+            0 => self.head,
+            _ => self.tails[index - 1],
+        };
+        let x_distance = prev.x - self.tails[index].x;
+        let y_distance = prev.y - self.tails[index].y;
+        if x_distance.abs() > 1 {
+            let direction = if x_distance >= 0 { -1 } else { 1 };
+
+            self.tails[index].x = prev.x + direction;
+            self.tails[index].y = prev.y
+        }
+
+        if y_distance.abs() > 1 {
+            let direction = if y_distance >= 0 { -1 } else { 1 };
+            self.tails[index].y = prev.y + direction;
+            self.tails[index].x = prev.x
+        }
+
+        if index == 8 {
+            self.solution.insert(self.tails[index]);
+        }
+    }
+}
+
+impl std::fmt::Display for Rope {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let max_x = self.tails.iter().map(|i| i.x).max().unwrap();
+        let min_x = self.tails.iter().map(|i| i.x).min().unwrap();
+        let max_y = self.tails.iter().map(|i| i.y).max().unwrap();
+        let min_y = self.tails.iter().map(|i| i.y).min().unwrap();
+
+        for x in min_x..=max_x {
+            for y in min_y..=max_y {
+                if self.tails.contains(&Point::new(x, y)) {
+                    write!(f, " * ")?
+                } else {
+                    write!(f, " . ")?
+                }
+            }
+            writeln!(f, "")?
+        }
+        Ok(())
+    }
+}
+
+type InpuType = Input;
+type SolutionType = HashSet<Point>;
+
+fn main() {
+    let input_str = include_str!("../inputs/2022/day9/input.txt");
+    let inputs: Vec<InpuType> = input_str
+        .lines()
+        .into_iter()
+        .filter_map(|s| s.safe_parse())
+        .collect();
+
+    let mut rope = Rope::new();
+    for input in inputs {
+        rope.process_input(input);
+    }
+    println!("{}", rope.solution.len());
 }
